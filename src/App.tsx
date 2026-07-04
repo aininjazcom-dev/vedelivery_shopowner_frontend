@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Routes, Route, useNavigate, useLocation, useParams, Outlet, Navigate } from 'react-router-dom';
 import { useApp } from './context/AppContext';
 import { Home, ShoppingBag, Utensils, TrendingUp, Settings, LogOut, Bell, Menu, X, Terminal, Database, RefreshCw } from 'lucide-react';
 
@@ -40,115 +41,119 @@ import { SubscriptionPlanScreen } from './screens/34_SubscriptionPlanScreen';
 import { HelpSupportScreen } from './screens/35_HelpSupportScreen';
 import { LogoutConfirmationScreen } from './screens/36_LogoutConfirmationScreen';
 
+// Screen ID to Path Configuration Map
+const SCREEN_ID_TO_PATH: Record<number, string> = {
+  1: '/',
+  2: '/login',
+  3: '/signup',
+  4: '/verify-otp',
+  5: '/store-setup',
+  6: '/store-timings',
+  7: '/store-location',
+  8: '/dashboard',
+  9: '/orders',
+  10: '/orders/details',
+  11: '/orders/preparing',
+  12: '/orders/ready',
+  13: '/orders/completed',
+  14: '/menu',
+  15: '/menu/add',
+  16: '/menu/detail',
+  17: '/earnings',
+  18: '/earnings/history',
+  19: '/reviews',
+  20: '/customers',
+  21: '/reports',
+  22: '/settings',
+  23: '/settings/bank',
+  24: '/notifications',
+  25: '/settings/printer',
+  26: '/settings/staff',
+  27: '/settings/staff/detail',
+  28: '/settings/staff/add',
+  29: '/menu/categories',
+  30: '/menu/categories/add',
+  31: '/settings/preferences',
+  32: '/settings/store-info',
+  33: '/settings/bank/edit',
+  34: '/settings/subscription',
+  35: '/settings/support',
+  36: '/logout'
+};
+
 function App() {
-  const { loading, state, updateState, resetToDefault } = useApp();
-  const [currentScreenId, setCurrentScreenId] = useState<number>(1);
+  const { loading, state, updateState, resetToDefault, user } = useApp();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // Navigation parameters state
   const [selectedOrderId, setSelectedOrderId] = useState<string>('#1258');
   const [selectedItemId, setSelectedItemId] = useState<string>('item-1');
   const [selectedStaffId, setSelectedStaffId] = useState<string>('staff-1');
   const [phoneData, setPhoneData] = useState({ phone: '+91 98765 43210', name: "John's Kitchen" });
-  
+
+  // Refs to handle instant value access during navigation and avoid stale closures
+  const latestSelectedOrderId = useRef(selectedOrderId);
+  const latestSelectedItemId = useRef(selectedItemId);
+  const latestSelectedStaffId = useRef(selectedStaffId);
+  const latestPhoneData = useRef(phoneData);
+
+  // Sync state values with refs
+  useEffect(() => { latestSelectedOrderId.current = selectedOrderId; }, [selectedOrderId]);
+  useEffect(() => { latestSelectedItemId.current = selectedItemId; }, [selectedItemId]);
+  useEffect(() => { latestSelectedStaffId.current = selectedStaffId; }, [selectedStaffId]);
+  useEffect(() => { latestPhoneData.current = phoneData; }, [phoneData]);
+
   // Mobile sidebar menu toggle
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Dev drawer toggle
   const [isDevDrawerOpen, setIsDevDrawerOpen] = useState(false);
 
-  // Auto route to Dashboard if user is logged in and screen is Splash/Login/SignUp
-  const { user } = useApp();
+  // Auto route to Dashboard if user is logged in and on onboarding/auth pages
   useEffect(() => {
-    if (user && currentScreenId <= 4) {
-      setCurrentScreenId(8); // Go to Dashboard
+    if (user && (pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname === '/verify-otp')) {
+      navigate('/dashboard', { replace: true });
     }
-  }, [user]);
+  }, [user, pathname, navigate]);
 
+  // Unified parameter setters
+  const handleSetSelectedOrderId = (id: string) => {
+    setSelectedOrderId(id);
+    latestSelectedOrderId.current = id;
+  };
+  const handleSetSelectedItemId = (id: string) => {
+    setSelectedItemId(id);
+    latestSelectedItemId.current = id;
+  };
+  const handleSetSelectedStaffId = (id: string) => {
+    setSelectedStaffId(id);
+    latestSelectedStaffId.current = id;
+  };
+  const handleSetPhoneData = (data: typeof phoneData) => {
+    setPhoneData(data);
+    latestPhoneData.current = data;
+  };
 
-  const renderScreen = () => {
-    switch (currentScreenId) {
-      // 1. Auth & Onboarding
-      case 1:
-        return <SplashScreen onNext={setCurrentScreenId} />;
-      case 2:
-        return <LoginScreen onNext={setCurrentScreenId} setPhoneData={setPhoneData} />;
-      case 3:
-        return <SignUpScreen onNext={setCurrentScreenId} setPhoneData={setPhoneData} />;
-      case 4:
-        return <OTPVerificationScreen onNext={setCurrentScreenId} phoneData={phoneData} />;
-      case 5:
-        return <StoreSetupScreen onNext={setCurrentScreenId} />;
-      case 6:
-        return <StoreTimingsScreen onNext={setCurrentScreenId} />;
-      case 7:
-        return <StoreLocationScreen onNext={setCurrentScreenId} />;
-
-      // 2. Dashboard & Orders
-      case 8:
-        return <DashboardScreen onNext={setCurrentScreenId} setSelectedOrderId={setSelectedOrderId} />;
-      case 9:
-        return <OrdersListScreen onNext={setCurrentScreenId} setSelectedOrderId={setSelectedOrderId} />;
-      case 10:
-        return <OrderDetailsNewScreen onNext={setCurrentScreenId} selectedOrderId={selectedOrderId} />;
-      case 11:
-        return <PreparingOrderScreen onNext={setCurrentScreenId} selectedOrderId={selectedOrderId} />;
-      case 12:
-        return <OrderReadyScreen onNext={setCurrentScreenId} selectedOrderId={selectedOrderId} />;
-      case 13:
-        return <OrderCompletedScreen onNext={setCurrentScreenId} selectedOrderId={selectedOrderId} />;
-
-      // 3. Menu & Categories
-      case 14:
-        return <MenuListScreen onNext={setCurrentScreenId} setSelectedItemId={setSelectedItemId} />;
-      case 15:
-        return <AddMenuItemScreen onNext={setCurrentScreenId} />;
-      case 16:
-        return <MenuItemDetailScreen onNext={setCurrentScreenId} selectedItemId={selectedItemId} />;
-      case 29:
-        return <CategoriesScreen onNext={setCurrentScreenId} />;
-      case 30:
-        return <AddCategoryScreen onNext={setCurrentScreenId} />;
-
-      // 4. Earnings & Insights
-      case 17:
-        return <EarningsOverviewScreen onNext={setCurrentScreenId} />;
-      case 18:
-        return <EarningsHistoryScreen onNext={setCurrentScreenId} />;
-      case 19:
-        return <ReviewsScreen onNext={setCurrentScreenId} />;
-      case 20:
-        return <CustomersScreen onNext={setCurrentScreenId} />;
-      case 21:
-        return <ReportsScreen onNext={setCurrentScreenId} />;
-
-      // 5. Settings & Staff
-      case 22:
-        return <StoreSettingsScreen onNext={setCurrentScreenId} />;
-      case 23:
-        return <BankDetailsScreen onNext={setCurrentScreenId} />;
-      case 24:
-        return <NotificationsScreen onNext={setCurrentScreenId} />;
-      case 25:
-        return <PrinterSettingsScreen onNext={setCurrentScreenId} />;
-      case 26:
-        return <ManageStaffScreen onNext={setCurrentScreenId} setSelectedStaffId={setSelectedStaffId} />;
-      case 27:
-        return <StaffDetailScreen onNext={setCurrentScreenId} selectedStaffId={selectedStaffId} />;
-      case 28:
-        return <AddStaffMemberScreen onNext={setCurrentScreenId} />;
-      case 31:
-        return <AppPreferencesScreen onNext={setCurrentScreenId} />;
-      case 32:
-        return <StoreInformationScreen onNext={setCurrentScreenId} />;
-      case 33:
-        return <EditBankDetailsScreen onNext={setCurrentScreenId} />;
-      case 34:
-        return <SubscriptionPlanScreen onNext={setCurrentScreenId} />;
-      case 35:
-        return <HelpSupportScreen onNext={setCurrentScreenId} />;
-      case 36:
-        return <LogoutConfirmationScreen onNext={setCurrentScreenId} />;
-
-      default:
-        return <DashboardScreen onNext={setCurrentScreenId} setSelectedOrderId={setSelectedOrderId} />;
+  // Intercept onNext callback and route dynamically
+  const handleNext = (nextId: number) => {
+    if (nextId === 10) {
+      navigate(`/orders/details/${latestSelectedOrderId.current}`);
+    } else if (nextId === 11) {
+      navigate(`/orders/preparing/${latestSelectedOrderId.current}`);
+    } else if (nextId === 12) {
+      navigate(`/orders/ready/${latestSelectedOrderId.current}`);
+    } else if (nextId === 13) {
+      navigate(`/orders/completed/${latestSelectedOrderId.current}`);
+    } else if (nextId === 16) {
+      navigate(`/menu/detail/${latestSelectedItemId.current}`);
+    } else if (nextId === 27) {
+      navigate(`/settings/staff/detail/${latestSelectedStaffId.current}`);
+    } else {
+      const path = SCREEN_ID_TO_PATH[nextId];
+      if (path) {
+        navigate(path);
+      }
     }
   };
 
@@ -191,8 +196,8 @@ function App() {
       };
     });
 
-    setSelectedOrderId(newOrder.id);
-    setCurrentScreenId(10); // Open new order details
+    handleSetSelectedOrderId(newOrder.id);
+    navigate(`/orders/details/${newOrder.id}`);
     setIsDevDrawerOpen(false);
   };
 
@@ -211,309 +216,406 @@ function App() {
     );
   }
 
-  // If we are on Auth/Onboarding Screens (1-7), render full screen login/signup without dashboard chrome
-  const isAuthScreen = currentScreenId <= 7;
-  if (isAuthScreen) {
-    return (
-      <div className="h-screen w-screen bg-slate-100 flex items-center justify-center p-0 md:p-6 overflow-hidden">
-        <div className="w-full h-full md:w-[410px] md:h-[840px] md:max-h-[90vh] md:rounded-[40px] md:border-[8px] md:border-slate-800 md:shadow-2xl overflow-hidden flex flex-col bg-white ring-1 ring-slate-700/50">
-          {renderScreen()}
-        </div>
+  // Wrapper routes mapping url params to props
+  const LoginRoute = () => <LoginScreen onNext={handleNext} setPhoneData={handleSetPhoneData} />;
+  const SignUpRoute = () => <SignUpScreen onNext={handleNext} setPhoneData={handleSetPhoneData} />;
+  const OTPVerificationRoute = () => <OTPVerificationScreen onNext={handleNext} phoneData={phoneData} />;
+
+  const DashboardRoute = () => <DashboardScreen onNext={handleNext} setSelectedOrderId={handleSetSelectedOrderId} />;
+  const OrdersListRoute = () => <OrdersListScreen onNext={handleNext} setSelectedOrderId={handleSetSelectedOrderId} />;
+  const MenuListRoute = () => <MenuListScreen onNext={handleNext} setSelectedItemId={handleSetSelectedItemId} />;
+  const ManageStaffRoute = () => <ManageStaffScreen onNext={handleNext} setSelectedStaffId={handleSetSelectedStaffId} />;
+
+  const OrderDetailsNewRoute = () => {
+    const { orderId } = useParams();
+    useEffect(() => { if (orderId) handleSetSelectedOrderId(orderId); }, [orderId]);
+    return <OrderDetailsNewScreen onNext={handleNext} selectedOrderId={orderId || selectedOrderId} />;
+  };
+
+  const PreparingOrderRoute = () => {
+    const { orderId } = useParams();
+    useEffect(() => { if (orderId) handleSetSelectedOrderId(orderId); }, [orderId]);
+    return <PreparingOrderScreen onNext={handleNext} selectedOrderId={orderId || selectedOrderId} />;
+  };
+
+  const OrderReadyRoute = () => {
+    const { orderId } = useParams();
+    useEffect(() => { if (orderId) handleSetSelectedOrderId(orderId); }, [orderId]);
+    return <OrderReadyScreen onNext={handleNext} selectedOrderId={orderId || selectedOrderId} />;
+  };
+
+  const OrderCompletedRoute = () => {
+    const { orderId } = useParams();
+    useEffect(() => { if (orderId) handleSetSelectedOrderId(orderId); }, [orderId]);
+    return <OrderCompletedScreen onNext={handleNext} selectedOrderId={orderId || selectedOrderId} />;
+  };
+
+  const MenuItemDetailRoute = () => {
+    const { itemId } = useParams();
+    useEffect(() => { if (itemId) handleSetSelectedItemId(itemId); }, [itemId]);
+    return <MenuItemDetailScreen onNext={handleNext} selectedItemId={itemId || selectedItemId} />;
+  };
+
+  const StaffDetailRoute = () => {
+    const { staffId } = useParams();
+    useEffect(() => { if (staffId) handleSetSelectedStaffId(staffId); }, [staffId]);
+    return <StaffDetailScreen onNext={handleNext} selectedStaffId={staffId || selectedStaffId} />;
+  };
+
+  // Auth Layout (mockup container)
+  const AuthLayout = () => (
+    <div className="h-screen w-screen bg-slate-100 flex items-center justify-center p-0 md:p-6 overflow-hidden">
+      <div className="w-full h-full md:w-[410px] md:h-[840px] md:max-h-[90vh] md:rounded-[40px] md:border-[8px] md:border-slate-800 md:shadow-2xl overflow-hidden flex flex-col bg-white ring-1 ring-slate-700/50">
+        <Outlet />
       </div>
-    );
-  }
+    </div>
+  );
 
-  // Otherwise, render full responsive app layout
-  return (
-    <div className="h-screen w-screen flex bg-slate-50 overflow-hidden font-sans relative">
-      
-      {/* 1. Desktop Sidebar Navigation */}
-      <aside className="hidden md:flex w-64 bg-slate-900 border-r border-slate-800 text-slate-200 flex-col justify-between shrink-0">
-        <div className="flex flex-col">
-          {/* Header */}
-          <div className="p-5 border-b border-slate-800 flex items-center gap-3 select-none">
-            <div className="w-9 h-9 bg-brand-orange rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/10">
-              <span className="text-white text-base">🍲</span>
-            </div>
-            <div>
-              <h1 className="text-sm font-black text-white font-sans tracking-tight">John's Kitchen</h1>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Shop Owner App</p>
-            </div>
-          </div>
+  // Dashboard Layout (main web application container)
+  const DashboardLayout = () => {
+    const isDashboardActive = pathname === '/dashboard';
+    const isOrdersActive = pathname.startsWith('/orders');
+    const isMenuActive = pathname.startsWith('/menu');
+    const isEarningsActive = pathname.startsWith('/earnings') || pathname === '/reviews' || pathname === '/customers' || pathname === '/reports';
+    const isSettingsActive = pathname.startsWith('/settings') || pathname === '/notifications' || pathname === '/logout';
 
-          {/* Navigation Links */}
-          <nav className="p-4 flex flex-col gap-1.5">
-            <button
-              onClick={() => setCurrentScreenId(8)}
-              className={`flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold transition ${
-                currentScreenId === 8 ? 'bg-brand-orange text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <Home className="w-4 h-4" />
-              Dashboard
-            </button>
-
-            <button
-              onClick={() => setCurrentScreenId(9)}
-              className={`flex items-center justify-between py-2.5 px-4 rounded-xl text-xs font-bold transition ${
-                currentScreenId === 9 || (currentScreenId >= 10 && currentScreenId <= 13)
-                  ? 'bg-brand-orange text-white'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <ShoppingBag className="w-4 h-4" />
-                Orders
-              </div>
-              <span className="text-[10px] bg-slate-800 text-slate-300 font-extrabold px-2 py-0.5 rounded-full">
-                {state.orders.filter(o => o.status === 'new').length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setCurrentScreenId(14)}
-              className={`flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold transition ${
-                currentScreenId === 14 || currentScreenId === 15 || currentScreenId === 16 || currentScreenId === 29 || currentScreenId === 30
-                  ? 'bg-brand-orange text-white'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <Utensils className="w-4 h-4" />
-              Menu Items
-            </button>
-
-            <button
-              onClick={() => setCurrentScreenId(17)}
-              className={`flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold transition ${
-                currentScreenId === 17 || currentScreenId === 18
-                  ? 'bg-brand-orange text-white'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4" />
-              Earnings
-            </button>
-
-            <button
-              onClick={() => setCurrentScreenId(22)}
-              className={`flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold transition ${
-                currentScreenId >= 22 && currentScreenId !== 29 && currentScreenId !== 30 && currentScreenId !== 36
-                  ? 'bg-brand-orange text-white'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              Settings
-            </button>
-          </nav>
-        </div>
-
-        {/* Footer Logout */}
-        <div className="p-4 border-t border-slate-800">
-          <button
-            onClick={() => setCurrentScreenId(36)}
-            className="w-full flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-950/20 transition text-left"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* 2. Main Page Layout (Responsive Area) */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+    return (
+      <div className="h-screen w-screen flex bg-slate-50 overflow-hidden font-sans relative">
         
-        {/* Desktop Top Header Bar */}
-        <header className="hidden md:flex h-16 bg-white border-b border-slate-100 items-center justify-between px-6 shrink-0 z-10">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Store:</span>
-            <span className="text-xs font-extrabold text-slate-800 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1">
-              {state.storeInfo.name}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Notification Bell */}
-            <button
-              onClick={() => setCurrentScreenId(24)}
-              className="relative p-2 hover:bg-slate-50 rounded-full transition"
-            >
-              <Bell className="w-5 h-5 text-slate-500" />
-              {getUnreadNotificationsCount() > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-brand-orange text-white text-[8px] font-black rounded-full flex items-center justify-center ring-2 ring-white">
-                  {getUnreadNotificationsCount()}
-                </span>
-              )}
-            </button>
-
-            {/* Profile */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-100 select-none">
-              <div className="w-8 h-8 bg-slate-100 text-xs rounded-full flex items-center justify-center shrink-0 font-bold border border-slate-200">👤</div>
+        {/* 1. Desktop Sidebar Navigation */}
+        <aside className="hidden md:flex w-64 bg-slate-900 border-r border-slate-800 text-slate-200 flex-col justify-between shrink-0">
+          <div className="flex flex-col">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-800 flex items-center gap-3 select-none">
+              <div className="w-9 h-9 bg-brand-orange rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/10">
+                <span className="text-white text-base">🍲</span>
+              </div>
               <div>
-                <span className="text-2xs font-extrabold text-slate-700 block">Owner Panel</span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">{user?.email || 'owner@vedelivery.com'}</span>
+                <h1 className="text-sm font-black text-white font-sans tracking-tight">John's Kitchen</h1>
+                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Shop Owner App</p>
               </div>
             </div>
-          </div>
-        </header>
 
-        {/* Mobile Header Bar */}
-        <header className="flex md:hidden h-14 bg-white border-b border-slate-100 items-center justify-between px-4 shrink-0 z-10 select-none">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-1 hover:bg-slate-50 rounded"
-            >
-              <Menu className="w-5 h-5 text-slate-700" />
-            </button>
-            <span className="text-sm font-bold text-slate-800 leading-tight">John's Kitchen</span>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentScreenId(24)}
-              className="relative p-1 hover:bg-slate-50 rounded-full"
-            >
-              <Bell className="w-5 h-5 text-slate-600" />
-              {getUnreadNotificationsCount() > 0 && (
-                <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-brand-orange text-white text-[8px] font-black rounded-full flex items-center justify-center ring-1 ring-white">
-                  {getUnreadNotificationsCount()}
-                </span>
-              )}
-            </button>
-          </div>
-        </header>
-
-        {/* Mobile Side Drawer overlay */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50 flex select-none">
-            {/* Backdrop */}
-            <div onClick={() => setIsMobileMenuOpen(false)} className="fixed inset-0 bg-slate-950/40 backdrop-blur-3xs"></div>
-            {/* Drawer */}
-            <div className="relative w-64 bg-slate-900 h-full flex flex-col justify-between p-5 text-slate-200">
-              <div className="flex flex-col gap-6">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-4">
-                  <h2 className="text-sm font-black text-white">John's Kitchen</h2>
-                  <button onClick={() => setIsMobileMenuOpen(false)} className="p-1 text-slate-400 hover:text-white">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <nav className="flex flex-col gap-2">
-                  <button
-                    onClick={() => { setCurrentScreenId(8); setIsMobileMenuOpen(false); }}
-                    className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
-                  >
-                    <Home className="w-4 h-4" /> Dashboard
-                  </button>
-                  <button
-                    onClick={() => { setCurrentScreenId(9); setIsMobileMenuOpen(false); }}
-                    className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
-                  >
-                    <ShoppingBag className="w-4 h-4" /> Orders
-                  </button>
-                  <button
-                    onClick={() => { setCurrentScreenId(14); setIsMobileMenuOpen(false); }}
-                    className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
-                  >
-                    <Utensils className="w-4 h-4" /> Menu Items
-                  </button>
-                  <button
-                    onClick={() => { setCurrentScreenId(17); setIsMobileMenuOpen(false); }}
-                    className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
-                  >
-                    <TrendingUp className="w-4 h-4" /> Earnings
-                  </button>
-                  <button
-                    onClick={() => { setCurrentScreenId(22); setIsMobileMenuOpen(false); }}
-                    className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
-                  >
-                    <Settings className="w-4 h-4" /> Settings
-                  </button>
-                </nav>
-              </div>
+            {/* Navigation Links */}
+            <nav className="p-4 flex flex-col gap-1.5">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className={`flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold transition ${
+                  isDashboardActive ? 'bg-brand-orange text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <Home className="w-4 h-4" />
+                Dashboard
+              </button>
 
               <button
-                onClick={() => { setCurrentScreenId(36); setIsMobileMenuOpen(false); }}
-                className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-950/20 text-left"
+                onClick={() => navigate('/orders')}
+                className={`flex items-center justify-between py-2.5 px-4 rounded-xl text-xs font-bold transition ${
+                  isOrdersActive ? 'bg-brand-orange text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
               >
-                <LogOut className="w-4 h-4" /> Logout
+                <div className="flex items-center gap-3">
+                  <ShoppingBag className="w-4 h-4" />
+                  Orders
+                </div>
+                <span className="text-[10px] bg-slate-800 text-slate-300 font-extrabold px-2 py-0.5 rounded-full">
+                  {state.orders.filter(o => o.status === 'new').length}
+                </span>
               </button>
+
+              <button
+                onClick={() => navigate('/menu')}
+                className={`flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold transition ${
+                  isMenuActive ? 'bg-brand-orange text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <Utensils className="w-4 h-4" />
+                Menu Items
+              </button>
+
+              <button
+                onClick={() => navigate('/earnings')}
+                className={`flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold transition ${
+                  isEarningsActive ? 'bg-brand-orange text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                Earnings
+              </button>
+
+              <button
+                onClick={() => navigate('/settings')}
+                className={`flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold transition ${
+                  isSettingsActive ? 'bg-brand-orange text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                Settings
+              </button>
+            </nav>
+          </div>
+
+          {/* Footer Logout */}
+          <div className="p-4 border-t border-slate-800">
+            <button
+              onClick={() => navigate('/logout')}
+              className="w-full flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-950/20 transition text-left"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
+        </aside>
+
+        {/* 2. Main Page Layout (Responsive Area) */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+          
+          {/* Desktop Top Header Bar */}
+          <header className="hidden md:flex h-16 bg-white border-b border-slate-100 items-center justify-between px-6 shrink-0 z-10">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Store:</span>
+              <span className="text-xs font-extrabold text-slate-800 bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1">
+                {state.storeInfo.name}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* Notification Bell */}
+              <button
+                onClick={() => navigate('/notifications')}
+                className="relative p-2 hover:bg-slate-50 rounded-full transition"
+              >
+                <Bell className="w-5 h-5 text-slate-500" />
+                {getUnreadNotificationsCount() > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-brand-orange text-white text-[8px] font-black rounded-full flex items-center justify-center ring-2 ring-white">
+                    {getUnreadNotificationsCount()}
+                  </span>
+                )}
+              </button>
+
+              {/* Profile */}
+              <div className="flex items-center gap-2.5 pl-2 border-l border-slate-100 select-none">
+                <div className="w-8 h-8 bg-slate-100 text-xs rounded-full flex items-center justify-center shrink-0 font-bold border border-slate-200">👤</div>
+                <div>
+                  <span className="text-2xs font-extrabold text-slate-700 block">Owner Panel</span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">{user?.email || 'owner@vedelivery.com'}</span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Mobile Header Bar */}
+          <header className="flex md:hidden h-14 bg-white border-b border-slate-100 items-center justify-between px-4 shrink-0 z-10 select-none">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-1 hover:bg-slate-50 rounded"
+              >
+                <Menu className="w-5 h-5 text-slate-700" />
+              </button>
+              <span className="text-sm font-bold text-slate-800 leading-tight">John's Kitchen</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/notifications')}
+                className="relative p-1 hover:bg-slate-50 rounded-full"
+              >
+                <Bell className="w-5 h-5 text-slate-600" />
+                {getUnreadNotificationsCount() > 0 && (
+                  <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-brand-orange text-white text-[8px] font-black rounded-full flex items-center justify-center ring-1 ring-white">
+                    {getUnreadNotificationsCount()}
+                  </span>
+                )}
+              </button>
+            </div>
+          </header>
+
+          {/* Mobile Side Drawer overlay */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden fixed inset-0 z-50 flex select-none">
+              {/* Backdrop */}
+              <div onClick={() => setIsMobileMenuOpen(false)} className="fixed inset-0 bg-slate-950/40 backdrop-blur-3xs"></div>
+              {/* Drawer */}
+              <div className="relative w-64 bg-slate-900 h-full flex flex-col justify-between p-5 text-slate-200">
+                <div className="flex flex-col gap-6">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                    <h2 className="text-sm font-black text-white">John's Kitchen</h2>
+                    <button onClick={() => setIsMobileMenuOpen(false)} className="p-1 text-slate-400 hover:text-white">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <nav className="flex flex-col gap-2">
+                    <button
+                      onClick={() => { navigate('/dashboard'); setIsMobileMenuOpen(false); }}
+                      className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
+                    >
+                      <Home className="w-4 h-4" /> Dashboard
+                    </button>
+                    <button
+                      onClick={() => { navigate('/orders'); setIsMobileMenuOpen(false); }}
+                      className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
+                    >
+                      <ShoppingBag className="w-4 h-4" /> Orders
+                    </button>
+                    <button
+                      onClick={() => { navigate('/menu'); setIsMobileMenuOpen(false); }}
+                      className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
+                    >
+                      <Utensils className="w-4 h-4" /> Menu Items
+                    </button>
+                    <button
+                      onClick={() => { navigate('/earnings'); setIsMobileMenuOpen(false); }}
+                      className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
+                    >
+                      <TrendingUp className="w-4 h-4" /> Earnings
+                    </button>
+                    <button
+                      onClick={() => { navigate('/settings'); setIsMobileMenuOpen(false); }}
+                      className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
+                    >
+                      <Settings className="w-4 h-4" /> Settings
+                    </button>
+                  </nav>
+                </div>
+
+                <button
+                  onClick={() => { navigate('/logout'); setIsMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 py-2.5 px-4 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-950/20 text-left"
+                >
+                  <LogOut className="w-4 h-4" /> Logout
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Screen Content Wrapper */}
+          <div className="flex-1 overflow-hidden relative flex flex-col">
+            <div className="flex-1 flex justify-center overflow-hidden">
+              <div className="w-full md:max-w-2xl bg-white md:shadow-sm md:m-6 md:rounded-2xl border-x md:border border-slate-100 overflow-hidden flex flex-col">
+                <Outlet />
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* 3. Floating Developer Control Trigger Button */}
+        <div className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40">
+          <button
+            onClick={() => setIsDevDrawerOpen(!isDevDrawerOpen)}
+            className="w-10 h-10 md:w-12 md:h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full flex items-center justify-center shadow-lg border border-slate-700/50 active:scale-95 transition"
+          >
+            <Terminal className="w-5 h-5 text-brand-orange" />
+          </button>
+        </div>
+
+        {/* Developer Control popout dialog */}
+        {isDevDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
+            <div onClick={() => setIsDevDrawerOpen(false)} className="absolute inset-0 bg-slate-950/40 backdrop-blur-3xs"></div>
+            
+            <div className="relative w-80 bg-slate-900 border border-slate-800 rounded-2xl p-5 text-slate-200 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <Terminal className="w-4 h-4 text-brand-orange" /> Dev control triggers
+                </h2>
+                <button onClick={() => setIsDevDrawerOpen(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <div className="text-2xs font-semibold text-slate-500 uppercase tracking-widest pl-0.5">Database</div>
+                
+                <div className="flex items-center gap-2 text-2xs bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+                  <Database className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="text-slate-300">Supabase Connected:</span>
+                  <span className="font-semibold text-emerald-400 ml-auto">YES (Relational tables)</span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => { await resetToDefault(); setIsDevDrawerOpen(false); }}
+                    className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 text-2xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700/50"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Reset Tables Data
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2 border-t border-slate-800">
+                <div className="text-2xs font-semibold text-slate-500 uppercase tracking-widest pl-0.5">Simulation</div>
+                <button
+                  onClick={handleSimulateOrder}
+                  className="w-full py-2.5 bg-brand-orange hover:bg-brand-orangeHover text-white rounded-lg text-xs font-bold active:scale-95 transition shadow-sm"
+                >
+                  Simulate Incoming Order
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Screen Content Wrapper */}
-        <div className="flex-1 overflow-hidden relative flex flex-col">
-          {/* On desktop, we center the content frame. On mobile, it fills full width. */}
-          <div className="flex-1 flex justify-center overflow-hidden">
-            <div className="w-full md:max-w-2xl bg-white md:shadow-sm md:m-6 md:rounded-2xl border-x md:border border-slate-100 overflow-hidden flex flex-col">
-              {renderScreen()}
-            </div>
-          </div>
-        </div>
-
       </div>
+    );
+  };
 
-      {/* 3. Floating Developer Control Trigger Button */}
-      <div className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40">
-        <button
-          onClick={() => setIsDevDrawerOpen(!isDevDrawerOpen)}
-          className="w-10 h-10 md:w-12 md:h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full flex items-center justify-center shadow-lg border border-slate-700/50 active:scale-95 transition"
-        >
-          <Terminal className="w-5 h-5 text-brand-orange" />
-        </button>
-      </div>
+  return (
+    <Routes>
+      {/* Onboarding & Auth Layout (phone mock frame) */}
+      <Route element={<AuthLayout />}>
+        <Route path="/" element={<SplashScreen onNext={handleNext} />} />
+        <Route path="/login" element={<LoginRoute />} />
+        <Route path="/signup" element={<SignUpRoute />} />
+        <Route path="/verify-otp" element={<OTPVerificationRoute />} />
+        <Route path="/store-setup" element={<StoreSetupScreen onNext={handleNext} />} />
+        <Route path="/store-timings" element={<StoreTimingsScreen onNext={handleNext} />} />
+        <Route path="/store-location" element={<StoreLocationScreen onNext={handleNext} />} />
+      </Route>
 
-      {/* Developer Control popout dialog */}
-      {isDevDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
-          <div onClick={() => setIsDevDrawerOpen(false)} className="absolute inset-0 bg-slate-950/40 backdrop-blur-3xs"></div>
-          
-          <div className="relative w-80 bg-slate-900 border border-slate-800 rounded-2xl p-5 text-slate-200 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
-                <Terminal className="w-4 h-4 text-brand-orange" /> Dev control triggers
-              </h2>
-              <button onClick={() => setIsDevDrawerOpen(false)} className="text-slate-400 hover:text-white">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Main App Layout */}
+      <Route element={<DashboardLayout />}>
+        <Route path="/dashboard" element={<DashboardRoute />} />
+        <Route path="/orders" element={<OrdersListRoute />} />
+        <Route path="/orders/details/:orderId" element={<OrderDetailsNewRoute />} />
+        <Route path="/orders/preparing/:orderId" element={<PreparingOrderRoute />} />
+        <Route path="/orders/ready/:orderId" element={<OrderReadyRoute />} />
+        <Route path="/orders/completed/:orderId" element={<OrderCompletedRoute />} />
+        
+        <Route path="/menu" element={<MenuListRoute />} />
+        <Route path="/menu/add" element={<AddMenuItemScreen onNext={handleNext} />} />
+        <Route path="/menu/detail/:itemId" element={<MenuItemDetailRoute />} />
+        <Route path="/menu/categories" element={<CategoriesScreen onNext={handleNext} />} />
+        <Route path="/menu/categories/add" element={<AddCategoryScreen onNext={handleNext} />} />
 
-            <div className="flex flex-col gap-3">
-              <div className="text-2xs font-semibold text-slate-500 uppercase tracking-widest pl-0.5">Database</div>
-              
-              <div className="flex items-center gap-2 text-2xs bg-slate-950 p-2.5 rounded-lg border border-slate-800">
-                <Database className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-slate-300">Supabase Connected:</span>
-                <span className="font-semibold text-emerald-400 ml-auto">YES (Relational tables)</span>
-              </div>
+        <Route path="/earnings" element={<EarningsOverviewScreen onNext={handleNext} />} />
+        <Route path="/earnings/history" element={<EarningsHistoryScreen onNext={handleNext} />} />
+        <Route path="/reviews" element={<ReviewsScreen onNext={handleNext} />} />
+        <Route path="/customers" element={<CustomersScreen onNext={handleNext} />} />
+        <Route path="/reports" element={<ReportsScreen onNext={handleNext} />} />
 
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => { await resetToDefault(); setIsDevDrawerOpen(false); }}
-                  className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 text-2xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700/50"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Reset Tables Data
-                </button>
-              </div>
-            </div>
+        <Route path="/settings" element={<StoreSettingsScreen onNext={handleNext} />} />
+        <Route path="/settings/bank" element={<BankDetailsScreen onNext={handleNext} />} />
+        <Route path="/settings/bank/edit" element={<EditBankDetailsScreen onNext={handleNext} />} />
+        <Route path="/settings/printer" element={<PrinterSettingsScreen onNext={handleNext} />} />
+        <Route path="/settings/staff" element={<ManageStaffRoute />} />
+        <Route path="/settings/staff/add" element={<AddStaffMemberScreen onNext={handleNext} />} />
+        <Route path="/settings/staff/detail/:staffId" element={<StaffDetailRoute />} />
+        <Route path="/settings/preferences" element={<AppPreferencesScreen onNext={handleNext} />} />
+        <Route path="/settings/store-info" element={<StoreInformationScreen onNext={handleNext} />} />
+        <Route path="/settings/subscription" element={<SubscriptionPlanScreen onNext={handleNext} />} />
+        <Route path="/settings/support" element={<HelpSupportScreen onNext={handleNext} />} />
 
-            <div className="flex flex-col gap-2 pt-2 border-t border-slate-800">
-              <div className="text-2xs font-semibold text-slate-500 uppercase tracking-widest pl-0.5">Simulation</div>
-              <button
-                onClick={handleSimulateOrder}
-                className="w-full py-2.5 bg-brand-orange hover:bg-brand-orangeHover text-white rounded-lg text-xs font-bold active:scale-95 transition shadow-sm"
-              >
-                Simulate Incoming Order
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <Route path="/notifications" element={<NotificationsScreen onNext={handleNext} />} />
+        <Route path="/logout" element={<LogoutConfirmationScreen onNext={handleNext} />} />
+      </Route>
 
-    </div>
+      {/* Fallback route */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 }
 
