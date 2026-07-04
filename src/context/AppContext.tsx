@@ -139,7 +139,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           email,
           password: 'password123',
           firstName: name.split(' ')[0] || 'Store',
-          lastName: name.split(' ')[1] || 'Owner'
+          lastName: name.split(' ')[1] || 'Owner',
+          phone
         })
       });
 

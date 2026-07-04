@@ -150,7 +150,7 @@ async function run() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS owner_orders (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        order_number TEXT UNIQUE NOT NULL,
+        order_number TEXT NOT NULL,
         store_id UUID NOT NULL REFERENCES owner_stores(id) ON DELETE CASCADE,
         customer_name TEXT NOT NULL,
         customer_phone TEXT NOT NULL,
@@ -166,7 +166,8 @@ async function run() {
         payment_status TEXT DEFAULT 'pending',
         delivered_at TEXT,
         created_at TIMESTAMPTZ DEFAULT now(),
-        updated_at TIMESTAMPTZ DEFAULT now()
+        updated_at TIMESTAMPTZ DEFAULT now(),
+        UNIQUE(store_id, order_number)
       );
     `);
     console.log('- owner_orders created');
@@ -193,6 +194,7 @@ async function run() {
         status TEXT DEFAULT 'active',
         phone TEXT NOT NULL,
         email TEXT NOT NULL,
+        password_hash TEXT,
         permissions TEXT[] DEFAULT ARRAY['Menu'],
         joined_on TEXT NOT NULL,
         created_at TIMESTAMPTZ DEFAULT now(),
