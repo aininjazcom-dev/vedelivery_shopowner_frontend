@@ -9,21 +9,45 @@ interface ScreenProps {
 
 export const LoginScreen: FC<ScreenProps> = ({ onNext, setPhoneData }) => {
   const { login } = useApp();
-  const [phone, setPhone] = useState('+91 98765 43210');
-  const [password, setPassword] = useState('••••••••');
+  const [phone, setPhone] = useState('+91 ');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
-    setPhoneData({ phone, name: "John's Kitchen" });
-    await login('john@kitchen.com');
-    onNext(4); // Go to OTP
+    setError('');
+    
+    // Simple validation
+    const cleanPhone = phone.trim();
+    if (!cleanPhone || cleanPhone === '+91' || cleanPhone === '+91 ') {
+      setError('Please enter a valid phone number');
+      return;
+    }
+    if (!password) {
+      setError('Please enter your password');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      setPhoneData({ phone: cleanPhone, name: "" });
+      const success = await login(cleanPhone, password);
+      if (success) {
+        onNext(8); // Go to Dashboard
+      }
+    } catch (err: any) {
+      setError(err.message || 'Invalid phone number or password. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="flex-1 bg-white p-6 flex flex-col justify-between h-full">
       {/* Top Back/Icon */}
-      <div className="flex flex-col gap-5 mt-2">
+      <div className="flex flex-col gap-5 mt-2 select-none">
         <button
           onClick={() => onNext(1)}
           className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100 self-start"
@@ -41,13 +65,22 @@ export const LoginScreen: FC<ScreenProps> = ({ onNext, setPhoneData }) => {
 
       {/* Form */}
       <form onSubmit={handleLogin} className="flex-1 flex flex-col justify-center gap-4 my-6">
+        
+        {/* Error Banner */}
+        {error && (
+          <div className="bg-rose-50 border border-rose-100 text-rose-600 rounded-xl p-3 text-xs font-bold select-none">
+            ⚠️ {error}
+          </div>
+        )}
+
         {/* Phone Input */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Phone Number</label>
           <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 focus-within:border-brand-orange transition">
-            <span className="text-xs font-semibold text-slate-400 mr-2 border-r border-slate-200 pr-2">🇮🇳 +91</span>
+            <span className="text-xs font-semibold text-slate-400 mr-2 border-r border-slate-200 pr-2 select-none">🇮🇳 +91</span>
             <input
               type="text"
+              required
               value={phone.replace('+91 ', '')}
               onChange={(e) => setPhone('+91 ' + e.target.value)}
               placeholder="Enter phone number"
@@ -58,13 +91,14 @@ export const LoginScreen: FC<ScreenProps> = ({ onNext, setPhoneData }) => {
 
         {/* Password Input */}
         <div className="flex flex-col gap-1.5">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center select-none">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
             <button type="button" className="text-2xs font-semibold text-brand-orange hover:underline">Forgot?</button>
           </div>
           <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 focus-within:border-brand-orange transition">
             <input
               type={showPassword ? "text" : "password"}
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
@@ -83,20 +117,23 @@ export const LoginScreen: FC<ScreenProps> = ({ onNext, setPhoneData }) => {
         {/* Login Button */}
         <button
           type="submit"
-          className="w-full py-3.5 bg-brand-orange hover:bg-brand-orangeHover active:scale-[0.99] transition rounded-xl text-white font-bold text-xs tracking-wide shadow-md shadow-orange-500/10 mt-2"
+          disabled={isLoading}
+          className={`w-full py-3.5 bg-brand-orange hover:bg-brand-orangeHover active:scale-[0.99] transition rounded-xl text-white font-bold text-xs tracking-wide shadow-md shadow-orange-500/10 mt-2 ${
+            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         >
-          Login
+          {isLoading ? 'Authenticating...' : 'Login'}
         </button>
 
         {/* Or Divider */}
-        <div className="flex items-center gap-3 my-2">
+        <div className="flex items-center gap-3 my-2 select-none">
           <div className="h-px bg-slate-100 flex-1"></div>
           <span className="text-2xs font-bold text-slate-400 uppercase tracking-widest">or continue with</span>
           <div className="h-px bg-slate-100 flex-1"></div>
         </div>
 
         {/* Social Buttons */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 select-none">
           <button
             type="button"
             onClick={() => onNext(8)}
@@ -124,7 +161,7 @@ export const LoginScreen: FC<ScreenProps> = ({ onNext, setPhoneData }) => {
       </form>
 
       {/* Footer */}
-      <div className="text-center mb-2">
+      <div className="text-center mb-2 select-none">
         <span className="text-xs text-slate-500">Don't have an account? </span>
         <button onClick={() => onNext(3)} className="text-xs font-bold text-brand-orange hover:underline">Sign Up</button>
       </div>

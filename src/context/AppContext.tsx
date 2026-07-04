@@ -8,7 +8,7 @@ interface AppContextType {
   state: BusinessOwnerState;
   loading: boolean;
   isDemo: boolean;
-  login: (email: string) => Promise<boolean>;
+  login: (phone: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, phone: string) => Promise<boolean>;
   verifyOtp: (phone: string, code: string) => Promise<boolean>;
   logout: () => void;
@@ -99,13 +99,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Login handler
-  const login = async (email: string) => {
-    // If backend is running, try real login. If it fails (connection refused), fall back to simulated mode
+  const login = async (phone: string, password: string) => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'password123' }) // testing default
+        body: JSON.stringify({ phone, password })
       });
 
       if (res.ok) {
@@ -115,18 +114,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setIsDemo(false);
         await fetchStoreDataFromBackend(data.token);
         return true;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || 'Invalid credentials');
       }
-    } catch (err) {
-      console.warn('Backend unreachable. Logging in with simulated demo account.');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      throw err;
     }
-
-    // Simulated login fallback
-    const dummyUser = { id: `simulated-${email.replace('@', '-')}`, email };
-    setUser(dummyUser);
-    setIsDemo(true);
-    loadLocalCache();
-    setLoading(false);
-    return true;
   };
 
   // Sign up handler
