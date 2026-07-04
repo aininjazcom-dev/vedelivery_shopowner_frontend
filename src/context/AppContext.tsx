@@ -4,7 +4,7 @@ import { initialDummyData, type BusinessOwnerState } from '../data/initialDummyD
 const BACKEND_URL = 'http://localhost:5000';
 
 interface AppContextType {
-  user: { id: string; email: string } | null;
+  user: { id: string; email: string; name?: string } | null;
   state: BusinessOwnerState;
   loading: boolean;
   isDemo: boolean;
@@ -19,7 +19,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string; name?: string } | null>(null);
   const [state, setState] = useState<BusinessOwnerState>(initialDummyData);
   const [loading, setLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(true);
@@ -49,7 +49,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         });
         if (res.ok) {
           const data = await res.json();
-          setUser({ id: data.user.sub, email: data.user.email });
+          setUser({ id: data.user.sub, email: data.user.email, name: data.user.name });
           setIsDemo(false);
           await fetchStoreDataFromBackend(token);
         } else {
@@ -110,7 +110,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('business_owner_token', data.token);
-        setUser({ id: data.user.id, email: data.user.email });
+        setUser({ id: data.user.id, email: data.user.email, name: `${data.user.first_name} ${data.user.last_name || ''}`.trim() });
         setIsDemo(false);
         await fetchStoreDataFromBackend(data.token);
         return true;
@@ -141,7 +141,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('business_owner_token', data.token);
-        setUser({ id: data.user.id, email: data.user.email });
+        setUser({ id: data.user.id, email: data.user.email, name: `${data.user.first_name} ${data.user.last_name || ''}`.trim() });
         setIsDemo(false);
         
         // Initialize store details via PUT after auth success

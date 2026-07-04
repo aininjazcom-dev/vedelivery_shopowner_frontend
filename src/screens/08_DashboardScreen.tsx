@@ -10,8 +10,9 @@ interface ScreenProps {
 }
 
 export const DashboardScreen: FC<ScreenProps> = ({ onNext, setSelectedOrderId }) => {
-  const { state, updateState } = useApp();
+  const { state, updateState, user } = useApp();
   const store = state.storeInfo;
+  const ownerGreetingName = user?.name || store.name || "Owner";
 
   const handleToggleStore = async () => {
     await updateState({
@@ -40,7 +41,7 @@ export const DashboardScreen: FC<ScreenProps> = ({ onNext, setSelectedOrderId })
         {/* Header */}
         <div className="flex items-center justify-between mt-1">
           <div>
-            <h1 className="text-lg font-bold text-slate-800 font-sans">Hello, {store.name} 👋</h1>
+            <h1 className="text-lg font-bold text-slate-800 font-sans">Hello, {ownerGreetingName} 👋</h1>
             <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Manage your shop dashboard</p>
           </div>
           
