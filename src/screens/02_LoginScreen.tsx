@@ -1,6 +1,6 @@
 import { useState, type FC, type FormEvent } from 'react';
 import { useApp } from '../context/AppContext';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, User } from 'lucide-react';
 
 interface ScreenProps {
   onNext: (nextId: number) => void;
@@ -9,7 +9,7 @@ interface ScreenProps {
 
 export const LoginScreen: FC<ScreenProps> = ({ onNext, setPhoneData }) => {
   const { login } = useApp();
-  const [phone, setPhone] = useState('+91 ');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -19,10 +19,9 @@ export const LoginScreen: FC<ScreenProps> = ({ onNext, setPhoneData }) => {
     e.preventDefault();
     setError('');
     
-    // Simple validation
-    const cleanPhone = phone.trim();
-    if (!cleanPhone || cleanPhone === '+91' || cleanPhone === '+91 ') {
-      setError('Please enter a valid phone number');
+    const cleanUsername = emailOrPhone.trim();
+    if (!cleanUsername) {
+      setError('Please enter your email or phone number');
       return;
     }
     if (!password) {
@@ -32,13 +31,13 @@ export const LoginScreen: FC<ScreenProps> = ({ onNext, setPhoneData }) => {
 
     setIsLoading(true);
     try {
-      setPhoneData({ phone: cleanPhone, name: "" });
-      const success = await login(cleanPhone, password);
+      setPhoneData({ phone: cleanUsername, name: "" });
+      const success = await login(cleanUsername, password);
       if (success) {
         onNext(8); // Go to Dashboard
       }
     } catch (err: any) {
-      setError(err.message || 'Invalid phone number or password. Please try again.');
+      setError(err.message || 'Invalid credentials. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -68,22 +67,22 @@ export const LoginScreen: FC<ScreenProps> = ({ onNext, setPhoneData }) => {
         
         {/* Error Banner */}
         {error && (
-          <div className="bg-rose-50 border border-rose-100 text-rose-600 rounded-xl p-3 text-xs font-bold select-none">
+          <div className="bg-rose-50 border border-rose-100 text-rose-600 rounded-xl p-3 text-xs font-bold select-none animate-pulse">
             ⚠️ {error}
           </div>
         )}
 
-        {/* Phone Input */}
+        {/* Email or Phone Input */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Phone Number</label>
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 focus-within:border-brand-orange transition">
-            <span className="text-xs font-semibold text-slate-400 mr-2 border-r border-slate-200 pr-2 select-none">🇮🇳 +91</span>
+          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Email or Phone Number</label>
+          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus-within:border-brand-orange transition">
+            <User className="w-4 h-4 text-slate-400 mr-2.5 select-none" />
             <input
               type="text"
               required
-              value={phone.replace('+91 ', '')}
-              onChange={(e) => setPhone('+91 ' + e.target.value)}
-              placeholder="Enter phone number"
+              value={emailOrPhone}
+              onChange={(e) => setEmailOrPhone(e.target.value)}
+              placeholder="Enter email or phone number"
               className="bg-transparent border-none outline-none flex-1 text-slate-800 text-xs font-medium"
             />
           </div>
@@ -95,7 +94,7 @@ export const LoginScreen: FC<ScreenProps> = ({ onNext, setPhoneData }) => {
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
             <button type="button" className="text-2xs font-semibold text-brand-orange hover:underline">Forgot?</button>
           </div>
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 focus-within:border-brand-orange transition">
+          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 focus-within:border-brand-orange transition">
             <input
               type={showPassword ? "text" : "password"}
               required

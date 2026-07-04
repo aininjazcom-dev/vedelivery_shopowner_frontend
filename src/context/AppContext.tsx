@@ -8,7 +8,7 @@ interface AppContextType {
   state: BusinessOwnerState;
   loading: boolean;
   isDemo: boolean;
-  login: (phone: string, password: string) => Promise<boolean>;
+  login: (emailOrPhone: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, phone: string, password: string) => Promise<boolean>;
   verifyOtp: (phone: string, code: string) => Promise<boolean>;
   logout: () => void;
@@ -99,12 +99,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Login handler
-  const login = async (phone: string, password: string) => {
+  const login = async (emailOrPhone: string, password: string) => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password })
+        body: JSON.stringify({ emailOrPhone, password })
       });
 
       if (res.ok) {
