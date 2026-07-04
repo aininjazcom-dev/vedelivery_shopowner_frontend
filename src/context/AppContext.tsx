@@ -9,7 +9,7 @@ interface AppContextType {
   loading: boolean;
   isDemo: boolean;
   login: (phone: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, phone: string) => Promise<boolean>;
+  signup: (name: string, email: string, phone: string, password: string) => Promise<boolean>;
   verifyOtp: (phone: string, code: string) => Promise<boolean>;
   logout: () => void;
   updateState: (newState: Partial<BusinessOwnerState> | ((prev: BusinessOwnerState) => BusinessOwnerState)) => Promise<void>;
@@ -124,15 +124,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Sign up handler
-  const signup = async (name: string, email: string, phone: string) => {
+  const signup = async (name: string, email: string, phone: string, password: string) => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          password: 'password123',
+          password,
           firstName: name.split(' ')[0] || 'Store',
           lastName: name.split(' ')[1] || 'Owner',
           phone
